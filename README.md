@@ -1,17 +1,19 @@
 # ALE-LSD
 Feature importance analysis by accumulated local effects (ALE) in photoacoustic oximetry by learned spectral decoloring (LSD).
 ## Summary
-Based on `numpy` and `matplotllib.pyplot` we implemented a method of determining the impact a feature (i.e. an illumination wavelength) has on the decision process of machine learning regressors. The implementation is particularly suited for histogram based gradient boosters ([LightGBM](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMRegressor.html), [XGBoost](https://xgboost.readthedocs.io/en/latest/python/python_api.html), [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html)), because they are usually not too computationally expensive. Using our method of determining a feature's importance, we were able to demonstrate that the absolute prediction errors, and the median absolute prediction error in particular, remain almost unchanged when more than half of the initially available features/wavelengths are removed (i.e. only the 6 most important instead of all 16 illumination wavelengths are used for training). Our method also outperforms the current approach of uniformally removing features/wavelengths while maintaining the wavelength span width as large as possible.
+Based on `numpy` and `matplotllib.pyplot` we implemented a method of determining the impact a feature (i.e. an illumination wavelength) has on the decision process of machine learning regressors. The implementation is particularly suited for histogram based gradient boosters ([LightGBM](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMRegressor.html), [XGBoost](https://xgboost.readthedocs.io/en/latest/python/python_api.html), [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html)), because they are usually not too computationally expensive. Using our method of determining a feature's importance, we were able to demonstrate that the absolute prediction errors, and the median absolute prediction error in particular, remain almost unchanged when more than half of the initially available features/wavelengths are removed (i.e. only the 6 most important instead of all 16 illumination wavelengths are used for training). Our method also compares to the current approach of uniformally removing features/wavelengths while maintaining the wavelength span width as large as possible.
 ## File structure
 * `ale.py` contains the `AccumulatedLocalEffects()` class.
 * `examples.ipynb` contains some basic examples based on an example data set stored in the folder `data`.
 * `plots.ipynb` can be used to reproduce all plots displayed in the paper and stored in the folder `plots`.
+## Data
+To do...
 ## Examples
 The following examples serf to quickly demonstrate the most important methods included in the `AccumulatedLocalEffects()` class:
 ### Feature importance indices
 Obtain an ordered list of your features, sorted according to ascending importance in the decision making progress of your regressor.
 
-    feature_importance = [ 1  5  4 14 13 12  9  8  6 11  7  3 10  2 15  0]
+    feature_importance = array([ 1,  5, 14,  4, 13, 12,  9,  8,  6,  7, 11,  3, 10,  2, 15,  0])
 
 ### Plot the ALE function
 This plot shows the accumulated local effects (ALE) function [2] for each wavelength and illumination position. It visually confirms the validity of our approach to determining feature importances.
