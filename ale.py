@@ -53,11 +53,12 @@ class AccumulatedLocalEffects:
 
     Methods
     -------
-    feature_importance_indices(illum_pos)
+    feature_importance_indices(illum_pos, features)
         RETURNS SORTED INDICES OF FEATURES BY IMPORTANCE (ASCENDING).
     plot_ALE_function(illum_pos)
-        PLOTS THE f_ALE FUNCTIONS FOR A SPECIFIED ILLUMINATION POSITION.
-    plot_feature_clipping(X_test, y_test, clipping_order, seed)
+        PLOTS THE ALE FUNCTIONS FOR A SPECIFIED ILLUMINATION POSITION.
+    plot_feature_clipping(
+        X_test, y_test, clipping_order, illum_pos, ordered_indices, seed)
         PLOTS THE PROGRESSION OF THE MEDIAN ABSOLUTE ERROR IN FEATURE CLIPPING.
 
     """
@@ -67,49 +68,46 @@ class AccumulatedLocalEffects:
 
         self.reg = reg
         self.filename = filename
-        self.X_train = X_train
         self.y_train = y_train
+        self.X_train = self._normalize_features(X_train, num_illum)
         self.num_illum = num_illum
         self.num_wlen = num_wlen
         self.num_subintervals = num_subintervals
         self.num_x_values = num_x_values
         self.data_reduction = data_reduction
 
-    def _normalize_features(self, X, n_illum=None):
+    @staticmethod
+    def _normalize_features(X, n_illum):
         """
-        Takes the L1-Norm of every set of num_feat wavelengths at num_illum
+        Takes the L1-Norm of every set of n_wlen wavelengths at n_illum
         different illumination positions, and uses it in order to normalize
         each row to a row-sum of 1.
 
         Parameters:
         -----------
-        X : Array of float64 (N,n_illum*num_feat)
+        X : Array of float64 (N,n_illum*n_wlen)
             RAW DATA SET.
         n_illum : int32
             NUMBER OF ILLUMINATION POSITIONS IN DATA SET.
 
         Returns:
         --------
-        X : Array of float64 (N,n_illum*n_feat)
+        X : Array of float64 (N,n_illum*n_wlen)
             L1-NORMALIZED DATA SET.
 
         """
 
-        # If num_illum is not provided, taking the value provided to the class
-        if n_illum is None:
-
-            n_illum = self.num_illum
-
         # Obtaining the number of features per illumination position
-        n_feat = int(len(X[0, :]) / n_illum)
+        n_wlen = int(len(X[0, :]) / n_illum)
 
+        # Iterating through all illumination positions
         for i in range(n_illum):
 
             # Taking the L1 row-norm
-            row_sum = np.sum(X[:, i*n_feat:(i+1)*n_feat], axis=1)
+            row_sum = np.sum(X[:, i*n_wlen:(i+1)*n_wlen], axis=1)
 
             # Dividing each row by its corresponding L1 row-norm
-            X[:, i*n_feat:(i+1)*n_feat] /= row_sum.reshape((len(X[:, 0]), 1))
+            X[:, i*n_wlen:(i+1)*n_wlen] /= row_sum.reshape((len(X[:, 0]), 1))
 
         return X
 
@@ -256,28 +254,28 @@ class AccumulatedLocalEffects:
 
         """
 
+        # Calling the ALE function
         ALE_function = self._ALE_function(feat, X)[0]
 
-        f_ALE_var = sum([abs(ALE_function[i+1] - ALE_function[i])
-                         for i in range(self.num_x_values - 1)])
+        # Calculating an approximation of the total variation of this function
+        ALE_var = sum([abs(ALE_function[i+1] - ALE_function[i])
+                       for i in range(self.num_x_values - 1)])
 
-        return f_ALE_var
+        return ALE_var
 
-    def feature_importance_indices(self, illum_pos, features=None):
+    def feature_importance_indices(self, illum_pos=[0], features=None):
         """
-        Ranks the features for one illumination position in X_train according
-        to their importance (i.e. the higher a feature's f_ALE_total_variation
-        is, the more impact it'll have on the predictions), and returns a
-        sorted list (least important first) of the feature indices.
+        Ranks the features of the specified illumination position in X_train
+        according to their importance (i.e. the higher a feature's ALE total
+        variation is, the more impact it'll have on the predictions), and
+        returns a sorted list (least important first) of the feature indices.
 
         Parameters
         ----------
-        illum_pos : List of int32
+        illum_pos : List of int32, optional (default is [0])
             ILLUMINATION POSITIONS TO USE IN CALCULATION OF THE IMPORTANCE.
         features : List of int32, optional (default is None, i.e. all features)
             FEATURES (WAVELENGTHS) TO USE IN CALCULATION OF THE IMPORTANCE.
-        X : Array of float64 (N, M), optional (default is None, i.e. X_train)
-            SAMPLE-FEATURE MATRIX.
 
         Returns
         -------
@@ -286,41 +284,43 @@ class AccumulatedLocalEffects:
 
         """
 
-        # If no features were specified, using all features of all wavelengths
+        # If no features were specified, using all features/wavelengths
         if features is None:
 
             features = np.arange(self.num_wlen)
 
+        # Declaring a variable to keep track of the total variation of the ALE
         ALE_var = np.zeros(len(features))
 
         # Adding up the ALE variations for the given illumination positions
         for i in illum_pos:
 
-            # Training data for the given illumination position and features
-            _X_train = self._normalize_features(
-                    self.X_train[:, i*len(features) + features], n_illum=1)
-
             # Fitting the regressor
-            self.reg.fit(_X_train, self.y_train)
+            self.reg.fit(
+                self._normalize_features(
+                    self.X_train[:, i*len(features) + features], n_illum=1),
+                self.y_train)
 
             # Indices of features sorted by their f_ALE standard deviations
-            ALE_var += [self._ALE_total_variation(feat, _X_train)
-                        for feat in range(len(features))]
+            ALE_var += [self._ALE_total_variation(
+                feat, self._normalize_features(
+                    self.X_train[:, i*len(features) + features], n_illum=1))
+                for feat in range(len(features))]
 
         # Sorting the features according to their ALE variation (ascending)
         ALE_var_ordered_indices = features[np.argsort(ALE_var)]
 
         return ALE_var_ordered_indices
 
-    def plot_ALE_function(self, illum_pos):
+    def plot_ALE_function(self, illum_pos=[0]):
         """
-        Plotting the f_ALE values for each wavelength and the specified
+        Plot the ALE function for all wavelengths and the specified
         illumination positions.
 
         Parameters
         ----------
-        illum_pos : List of int32
-            ILLUMINATION POSITIONS TO PLOT THE f_ALE VALUES FOR.
+        illum_pos : List of int32, optional (default is [0])
+            ILLUMINATION POSITIONS TO BE INCLUDE IN THE ALE FUNCTION PLOT.
 
         """
 
@@ -513,8 +513,10 @@ class AccumulatedLocalEffects:
                         ] = ordered_indices[i:] + j*self.num_wlen
 
                 # Only using the features with highest f_ALE standard deviation
-                _X_train = self._normalize_features(self.X_train[:, indices])
-                _X = self._normalize_features(X[:, indices])
+                _X_train = self._normalize_features(
+                    self.X_train[:, indices], n_illum=self.num_illum)
+                _X = self._normalize_features(
+                    X[:, indices], n_illum=self.num_illum)
 
                 # Fitting the regressor
                 self.reg.fit(_X_train, self.y_train)
@@ -573,9 +575,9 @@ class AccumulatedLocalEffects:
 
         # Adding additional stuff to the plots
         plt.xlabel(r"Number of features used for fit and predictions $~n$")
-        plt.ylabel(r"Absolute prediction-errors $~|\Delta rCu_{est}|$ [pp]")
-        plt.xticks(np.arange(1, self.num_wlen + 1),
-                   np.arange(1, self.num_wlen + 1))
+        plt.ylabel(r"Absolute prediction-errors $~|r_{pred}|$ [pp]")
+        plt.xticks(
+            np.arange(1, self.num_wlen + 1), np.arange(1, self.num_wlen + 1))
         plt.yticks([1, 10], [1, 10])
 
         # Adding a legend
