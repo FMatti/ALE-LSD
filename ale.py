@@ -3,10 +3,11 @@ from matplotlib import pyplot as plt
 
 # LaTeX typesetting
 plt.rcParams.update({
-    "text.usetex": True,
-    "text.latex.preamble": r"\usepackage{eulervm}",
-    "font.family": "serif",
-    "font.serif": "Palatino",
+    'text.usetex': True,
+    'text.latex.preamble': r'\usepackage{eulervm}',
+    'font.family': 'serif',
+    'font.serif': 'Palatino',
+    'font.size': 11,
 })
 
 
@@ -68,8 +69,8 @@ class AccumulatedLocalEffects:
 
         self.reg = reg
         self.filename = filename
+        self.X_train = X_train
         self.y_train = y_train
-        self.X_train = self._normalize_features(X_train, num_illum)
         self.num_illum = num_illum
         self.num_wlen = num_wlen
         self.num_subintervals = num_subintervals
@@ -326,19 +327,16 @@ class AccumulatedLocalEffects:
 
         # Initializing the plot-surface
         fig, ax = plt.subplots(
-            -(- self.num_wlen // 4), 4, figsize=(7, 7), sharey=True)
+            -(- self.num_wlen // 4), 4, figsize=(6, 6), sharey=True)
 
         # Defining a bunch of colors
-        colors = [[0.106, 0.169, 0.514, 1],
-                  [0.209, 0.509, 0.722, 1],
-                  [0.506, 0.796, 0.816, 1],
-                  [0.835, 0.918, 0.784, 1]]
+        colors = plt.get_cmap('Blues_r')(np.linspace(0, 0.7, len(illum_pos)))
 
         for i in illum_pos:
 
             # Only using features corresponding to the illumination position
-            _X_train = self.X_train[
-                :, self.num_wlen*i:self.num_wlen*(i + 1)]
+            _X_train = self._normalize_features(self.X_train[
+                :, self.num_wlen*i:self.num_wlen*(i + 1)], n_illum=1)
 
             # Fitting the regressor
             self.reg.fit(_X_train, self.y_train)
@@ -365,6 +363,10 @@ class AccumulatedLocalEffects:
                 0.95, 0.92, r"$\lambda$ = %d nm" % (680+feat*20),
                 fontsize='small', ha='right', va='top',
                 transform=ax[int(feat/4), feat % 4].transAxes)
+
+            # Setting fontsize of tick labels
+            ax[int(feat/4), feat % 4].tick_params(
+                axis='both', which='major', labelsize=9)
 
             # Adding quantiles if only one illumination position is specified
             if len(illum_pos) == 1:
@@ -393,7 +395,8 @@ class AccumulatedLocalEffects:
             plt.legend(
                 title="Illumination position", loc='upper center',
                 bbox_to_anchor=[0.5, 1], bbox_transform=plt.gcf().transFigure,
-                ncol=len(illum_pos))
+                ncol=len(illum_pos), fancybox=False, title_fontsize=11,
+                fontsize=9)
 
         # Adding the global x- and y-label (using textboxes because it works)
         fig.text(0.5, 0.05,
@@ -403,10 +406,11 @@ class AccumulatedLocalEffects:
                  ha='left', va='center', rotation=90)
 
         # Saving the figure
-        plt.savefig(self.filename + '_ALE_function.png', dpi=300)
+        plt.savefig(self.filename + '_ALE_function.pdf', dpi=600)
 
     def plot_feature_clipping(self, X, y, clipping_order, illum_pos=[0],
-                              ordered_indices=None, seed=1):
+                              ordered_indices=None, n_shown='all',
+                              seed=1):
         """
         Creates a boxplot for the absolute prediction errors when performing
         the 'feature clipping' operation according to various clipping orders
@@ -424,6 +428,7 @@ class AccumulatedLocalEffects:
             ILLUMINATION POSITIONS WHICH WILL BE USED TO DETERMINE IMPORTANCE.
         ordered_indices : List of int32, optional (default is None)
             ORDER OF REMOVING FEATURES IF 'custom' CLIPPING MODE WAS PICKED.
+        n_shown : List of int32, optional (default is 'all')
         seed : int32 or None, optional (default is 1)
             SEED FOR GENERATING RANDOM FEATURE INDICES.
 
@@ -434,6 +439,16 @@ class AccumulatedLocalEffects:
                 [feature last used in this step, P10, Q1, Q2, Q3, P90]
 
         """
+
+        if n_shown == 'all':
+
+            n_shown = list(np.arange(1, self.num_wlen+1))
+
+        n_shown_clean = list(n_shown)
+
+        if n_shown_clean.count('...') != 0:
+
+            n_shown_clean.pop(n_shown_clean.index('...'))
 
         # Initializing the arrays which keeps track of some statistical data
         stats = dict()
@@ -452,18 +467,34 @@ class AccumulatedLocalEffects:
                     size=self.num_wlen,
                     replace=False)
 
-            elif c == 'uniformal':
+            elif c == 'state_of_the_art':
 
-                # Uniformally spaced feature-indices
+                # Uniformally spaced feature-indices, concentrated at edges
                 ordered_indices = np.array([7, 8, 3, 12, 5, 10, 1, 14,
-                                           6, 9, 4, 11, 2, 13, 0, 15])
+                                            6, 9, 4, 11, 2, 13, 0, 15])
 
                 if self.num_wlen != 16:
 
-                    c = 'importance'
+                    c = 'updated_min_ALE'
 
-                    print("WARNING! Order 'uniformal' only works for 16")
-                    print("         wavelengths. Using 'importance' instead.")
+                    print("WARNING! Clipping order 'state_of_the_art' only")
+                    print("         works for 16. wavelengths. I'll use")
+                    print("         'updated_min_ALE' instead.")
+
+            elif c == 'state_of_the_art_2':
+
+                # Uniformally spaced feature-indices, concentrated in center
+                ordered_indices = np.array([7, 8, 3, 12, 1, 14, 5, 10,
+                                            2, 13, 4, 11, 6, 9, 0, 15])
+
+                if self.num_wlen != 16:
+
+                    c = 'updated_min_ALE'
+
+                    print("WARNING! Clipping order 'state_of_the_art' only")
+                    print("         works for 16. wavelengths. I'll use")
+                    print("         'updated_min_ALE' instead.")
+
 
             elif c == 'alternating':
 
@@ -477,10 +508,17 @@ class AccumulatedLocalEffects:
                 # Custom indices according to the 'clipping_order' parameter
                 ordered_indices = np.array(ordered_indices)
 
-            elif c == 'updatedimportance':
+            elif c == 'updated_min_ALE':
 
                 # The initial order doesn't matter, it will be recalculated
                 ordered_indices = np.arange(self.num_wlen)
+
+                # For 'updatedimportance' order, iteratively recalculate
+                # importance order for every number n of features used
+                for i in range(self.num_wlen-2):
+
+                    ordered_indices[i:] = self.feature_importance_indices(
+                        illum_pos, ordered_indices[i:])
 
             else:
 
@@ -489,30 +527,29 @@ class AccumulatedLocalEffects:
                 # f_ALE function calculated for the X_train data set.
                 ordered_indices = self.feature_importance_indices(illum_pos)
 
-                if c != 'importance':
+                if c != 'min_ALE':
 
                     print("WARNING! Invalid clipping order specified. Using")
-                    print("         clipping_order='importance' instead.")
+                    print("         clipping_order='min_ALE' instead.")
 
             # Initializing variables to keep track of various statistics
-            stats[c] = np.empty((6, self.num_wlen))
+            stats[c] = np.empty((6, len(n_shown_clean)))
             y_abserr[c] = []
 
             # Iteratively removing a feature from sorted_indices, and only
             # using the remaining features for fitting and predicting
-            for i in range(self.num_wlen):
+            for n, i in zip(n_shown_clean[::-1], range(len(n_shown_clean))):
 
                 # Taking only the indices into account (all illum_pos)
-                # which have biggest impact on predictions (highest f_ALE_std)
-                indices = np.empty((self.num_wlen-i)*self.num_illum, dtype=int)
+                # which have biggest impact on predictions (highest ALE var)
+                indices = np.empty(n*self.num_illum, dtype=int)
 
                 for j in range(self.num_illum):
 
-                    indices[
-                        j*(self.num_wlen-i):(j+1)*(self.num_wlen-i)
-                        ] = ordered_indices[i:] + j*self.num_wlen
+                    indices[j*n:(j+1)*n] = (
+                        ordered_indices[self.num_wlen-n:] + j*self.num_wlen)
 
-                # Only using the features with highest f_ALE standard deviation
+                # Only using the features with highest ALE total variation
                 _X_train = self._normalize_features(
                     self.X_train[:, indices], n_illum=self.num_illum)
                 _X = self._normalize_features(
@@ -524,40 +561,35 @@ class AccumulatedLocalEffects:
                 # Obtaining the absolute errors and the median absolute error
                 y_pred = self.reg.predict(_X)
                 y_abserr[c].append(abs(y_pred - y) * 100)
-                stats[c][1:, self.num_wlen-1-i] = np.quantile(
+                stats[c][1:, len(n_shown_clean)-i-1] = np.quantile(
                     abs(y_pred - y) * 100, [0.1, 0.25, 0.5, 0.75, 0.9])
 
-                # For 'updatedimportance' order, recalculate importance order
-                if (c == 'updatedimportance') & (i < self.num_wlen - 1):
-
-                    ordered_indices[i:] = self.feature_importance_indices(
-                        illum_pos, ordered_indices[i:])
-
             # Adding the ordered indices to the 'stats' array
-            stats[c][0, :] = np.flip(ordered_indices)
+            stats[c][0, :] = np.flip(ordered_indices)[
+                [e-1 for e in n_shown_clean]]
 
         # Initializing the plot surface
-        plt.figure(figsize=(11, 5))
+        plt.figure(figsize=(6, 3.5))
         plt.yscale('log')
 
         # The number of clipping orders that were specified
         length = len(clipping_order)
 
         # Calculating the offsets for displaying multiple clipping modes
-        offset = (np.arange(length) - (length - 1)/2) / (length + 0.5)
+        offset = (np.arange(length) - (length - 1)/2) / (length + 1)
 
-        # Defining a bunch of colors
-        colors = [[0.106, 0.169, 0.514, 0.5],
-                  [0.209, 0.509, 0.722, 0.5],
-                  [0.506, 0.796, 0.816, 0.5],
-                  [0.835, 0.918, 0.784, 0.5]]
+        colors = plt.get_cmap('Blues_r')(np.linspace(0, 0.7, length))
+        colors[:, 3] = 0.75
 
         for i, c in zip(range(length), clipping_order):
 
             # Creating the boxplot
             plt.boxplot(
                 y_abserr[c][::-1],
-                positions=np.arange(1, self.num_wlen+1) + offset[i],
+                positions=(np.arange(1, len(n_shown)+1) + offset[i]
+                           if n_shown.count('...') == 0 else
+                           np.delete(np.arange(1, len(n_shown)+1),
+                                     n_shown.index('...')) + offset[i]),
                 whis=[10, 90],
                 showfliers=False,
                 patch_artist=True,
@@ -567,24 +599,28 @@ class AccumulatedLocalEffects:
                 medianprops=dict(color='k'))
 
             # Creating some empty plots for use in the legend later on
-            plt.plot([], color=colors[i], label=c, linewidth=5)
+            plt.plot(
+                [], color=colors[i], label=c.replace('_', ' '), linewidth=5)
 
         # Adding grid lines to guide the eye
-        plt.grid(which='major', axis='y', linewidth=0.5, c='k', alpha=0.5)
-        plt.grid(which='minor', axis='y', linewidth=0.25, c='k', alpha=0.5)
+        plt.grid(which='major', axis='y', linewidth=0.5, c='k', alpha=1)
+        plt.grid(which='minor', axis='y', linewidth=0.25, c='k', alpha=1)
 
         # Adding additional stuff to the plots
-        plt.xlabel(r"Number of features used for fit and predictions $~n$")
-        plt.ylabel(r"Absolute prediction-errors $~|r_{pred}|$ [pp]")
-        plt.xticks(
-            np.arange(1, self.num_wlen + 1), np.arange(1, self.num_wlen + 1))
-        plt.yticks([1, 10], [1, 10])
+        plt.xlabel(r"Number of features used for fitting and predicting $n$")
+        plt.ylabel(r"Absolute prediction-errors $|e_{est}|$ (pp)")
+        plt.ylim(0.4, 80)
+        plt.xticks(np.arange(1, len(n_shown)+1), n_shown, fontsize=9)
+        plt.yticks([1, 10], [1, 10], fontsize=9)
 
         # Adding a legend
-        plt.legend(title="Clipping order")
+        plt.legend(title="Clipping order", loc='upper right', fancybox=False,
+                   title_fontsize=11, fontsize=9)
 
         # Saving the figure
         plt.savefig(self.filename + '_FEATCLIP_' + '-'.join(clipping_order)
-                    + '.png', dpi=300)
+                    + '.pdf', dpi=600)
+
+        np.save(self.filename, stats)  # Temporary, to be removed later on!
 
         return stats
