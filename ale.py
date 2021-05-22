@@ -327,10 +327,13 @@ class AccumulatedLocalEffects:
 
         # Initializing the plot-surface
         fig, ax = plt.subplots(
-            -(- self.num_wlen // 4), 4, figsize=(6, 6), sharey=True)
+            -(- self.num_wlen // 4), 4, figsize=(6, 6.5), sharey=True)
 
         # Defining a bunch of colors
         colors = plt.get_cmap('Blues_r')(np.linspace(0, 0.7, len(illum_pos)))
+
+        # Manually picking a good looking color for single illuminations
+        if len(illum_pos) == 1: colors[0] = np.array([0.129, 0.443, 0.709, 1])
 
         for i in illum_pos:
 
@@ -400,9 +403,9 @@ class AccumulatedLocalEffects:
 
         # Adding the global x- and y-label (using textboxes because it works)
         fig.text(0.5, 0.05,
-                 r"L1 normalized absorbed energy $H(\mathbf{x_0},\lambda)$",
+                 r"L1 normalized absorbed energy $\hat{H}$",
                  ha='center', va='bottom')
-        fig.text(0.05, 0.5, r"Accumulated local effects $f_{ALE}(H)$",
+        fig.text(0.04, 0.5, r"Accumulated local effects $ALE(\hat{H})$",
                  ha='left', va='center', rotation=90)
 
         # Saving the figure
@@ -475,11 +478,11 @@ class AccumulatedLocalEffects:
 
                 if self.num_wlen != 16:
 
-                    c = 'updated_min_ALE'
+                    c = 'min_ALE'
 
                     print("WARNING! Clipping order 'state_of_the_art' only")
                     print("         works for 16. wavelengths. I'll use")
-                    print("         'updated_min_ALE' instead.")
+                    print("         'min_ALE' instead.")
 
             elif c == 'state_of_the_art_2':
 
@@ -489,12 +492,11 @@ class AccumulatedLocalEffects:
 
                 if self.num_wlen != 16:
 
-                    c = 'updated_min_ALE'
+                    c = 'min_ALE'
 
                     print("WARNING! Clipping order 'state_of_the_art' only")
                     print("         works for 16. wavelengths. I'll use")
-                    print("         'updated_min_ALE' instead.")
-
+                    print("         'min_ALE' instead.")
 
             elif c == 'alternating':
 
@@ -519,6 +521,8 @@ class AccumulatedLocalEffects:
 
                     ordered_indices[i:] = self.feature_importance_indices(
                         illum_pos, ordered_indices[i:])
+
+                print('updated_min_ALE:', 680 + 20*ordered_indices)
 
             else:
 
@@ -607,8 +611,8 @@ class AccumulatedLocalEffects:
         plt.grid(which='minor', axis='y', linewidth=0.25, c='k', alpha=1)
 
         # Adding additional stuff to the plots
-        plt.xlabel(r"Number of features used for fitting and predicting $n$")
-        plt.ylabel(r"Absolute prediction-errors $|e_{est}|$ (pp)")
+        plt.xlabel(r"Number of wavelengths used for training $n_{\lambda}$")
+        plt.ylabel(r"Absolute prediction errors $\Delta_{pred}$ (pp)")
         plt.ylim(0.4, 80)
         plt.xticks(np.arange(1, len(n_shown)+1), n_shown, fontsize=9)
         plt.yticks([1, 10], [1, 10], fontsize=9)
