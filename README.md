@@ -5,22 +5,22 @@ Based on `numpy` and `matplotllib.pyplot` we implemented a method of determining
 ## File structure
 * `ale.py` contains the `AccumulatedLocalEffects()` class.
 * `examples.ipynb` contains some basic examples based on an example data set stored in the folder `data`.
-* `plots.ipynb` can be used to reproduce all plots displayed in the paper and stored in the folder `plots`.
+* `plots.ipynb` can be used to reproduce all plots displayed in the thesis.
 ## Data
-To do...
+All rCu data available on [doi:10.5281/zenodo.4549631](https://doi.org/10.5281/zenodo.4549631)
 ## Examples
 The following examples serf to quickly demonstrate the most important methods included in the `AccumulatedLocalEffects()` class:
 ### Feature importance indices
 Obtain an ordered list of your features, sorted according to ascending importance in the decision making progress of your regressor.
 
-    feature_importance = array([ 1,  5, 14,  4, 13, 12,  9,  8,  6,  7, 11,  3, 10,  2, 15,  0])
+    feature_importance = array([5,  1, 14,  4, 13,  9, 12,  6,  8, 11,  7,  3, 10,  2, 15,  0])
 
 ### Plot the ALE function
 This plot shows the accumulated local effects (ALE) function [2] for each wavelength and illumination position. It visually confirms the validity of our approach to determining feature importances.
-![ALE_function example](/plots/EXAMPLE_ALE_function.pdf)
+![ALE_function example](/plots/EXAMPLE_ALE_function.png)
 ### Plot the progression of the absolute errors while doing 'clipping features'
 This plot displays the progression of the absolute error while sequentially excluding a feature from the training process according to some criterion, e.g. the `importance` determined using the approximate total variation [3] of each feature, or `uniformal` which removes features uniformally. It demonstrates the effectiveness of our method of evaluating the importance of a feature.
-![feature clipping example](/plots/EXAMPLE_FEATCLIP_state_of_the_art-min_ALE-updated_min_ALE.pdf)
+![feature clipping example](/plots/EXAMPLE_FEATCLIP_state_of_the_art-min_ALE-updated_min_ALE.png)
 ## Resources
 [1] Kirchner, Thomas & Frenz, Martin (2021). "Quantitative photoacoustic oximetry imaging by multiple illumination learned spectral decoloring". [arXiv:2102.11201v1](https://arxiv.org/abs/2102.11201)
 
