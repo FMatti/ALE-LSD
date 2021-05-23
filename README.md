@@ -7,7 +7,10 @@ Based on `numpy` and `matplotllib.pyplot` we implemented a method of determining
 * `examples.ipynb` contains some basic examples based on an example data set stored in the folder `data`.
 * `plots.ipynb` can be used to reproduce all plots displayed in the thesis.
 ## Data
-All rCu data available on [doi:10.5281/zenodo.4549631](https://doi.org/10.5281/zenodo.4549631)
+All rCu data available at
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4549631.svg)](https://doi.org/10.5281/zenodo.4549631)
+
 ## Examples
 The following examples serf to quickly demonstrate the most important methods included in the `AccumulatedLocalEffects()` class:
 ### Feature importance indices
