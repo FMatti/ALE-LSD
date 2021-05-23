@@ -16,11 +16,19 @@ Obtain an ordered list of your features, sorted according to ascending importanc
     feature_importance = array([5,  1, 14,  4, 13,  9, 12,  6,  8, 11,  7,  3, 10,  2, 15,  0])
 
 ### Plot the ALE function
-This plot shows the accumulated local effects (ALE) function [2] for each wavelength and illumination position. It visually confirms the validity of our approach to determining feature importances.
-![ALE_function example](/plots/EXAMPLE_ALE_function.png)
+This plot shows the accumulated local effects (ALE) function [2] for each wavelength and one illumination position. It visually confirms the validity of our approach to determining feature importances.
+
+![ALE_function example](/plots/EXAMPLE_ALE_function.PNG)
+
+The same plot, but for multiple illumination positions.
+
+![ALE_function example multi](/plots/EXAMPLE_ALE_function_multi.PNG)
+
 ### Plot the progression of the absolute errors while doing 'clipping features'
-This plot displays the progression of the absolute error while sequentially excluding a feature from the training process according to some criterion, e.g. the `importance` determined using the approximate total variation [3] of each feature, or `uniformal` which removes features uniformally. It demonstrates the effectiveness of our method of evaluating the importance of a feature.
-![feature clipping example](/plots/EXAMPLE_FEATCLIP_state_of_the_art-min_ALE-updated_min_ALE.png)
+This plot displays the progression of the absolute error while sequentially excluding a feature from the training process according to some criterion, e.g. with the clipping orders `state_of_the_art` (features clipped uniformally), `min_ALE` (features clipped according to the feature importances, determined by the total variation [3] of the ALE functions), and `updated_min_ALE` (least important feature in every round is removed).
+
+![feature clipping example](/plots/EXAMPLE_FEATCLIP_state_of_the_art-min_ALE-updated_min_ALE.PNG)
+
 ## Resources
 [1] Kirchner, Thomas & Frenz, Martin (2021). "Quantitative photoacoustic oximetry imaging by multiple illumination learned spectral decoloring". [arXiv:2102.11201v1](https://arxiv.org/abs/2102.11201)
 
