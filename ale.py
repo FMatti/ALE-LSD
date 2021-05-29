@@ -22,14 +22,17 @@ class AccumulatedLocalEffects:
 
     References
     ----------
-    [1] Kirchner, Thomas & Frenz, Martin (2021). "Quantitative photoacoustic
-        oximetry imaging by multiple illumination learned spectral decoloring".
-        arXiv:2102.11201v1
-    [2] Apley, Daniel W. & Zhu, Jingyu (2019). "Visualizing the Effects of
-        Predictor Variables in Black Box Supervised Learning Models".
-        arXiv:1612.08468v2.
-    [3] Golubov, Boris I. & Vitushkin, Anatoli G. (2001).
-        "Variation of a function". Encyclopedia of Mathematics, EMS Press.
+    [1] T. Kirchner and M. Frenz (2021). "Quantitative photoacoustic oximetry
+    imaging by multiple illumination learned spectral decoloring".
+    https://arxiv.org/abs/2102.11201
+    [2] D. W. Apley and J. Zhu (2019). "Visualizing the Effects of Predictor
+    Variables in Black Box Supervised Learning Models".
+    https://arxiv.org/abs/1612.08468
+    [3] G. P. Luke, S. Y. Nam, and S. Y. Emelianov (2013). “Optical wavelength
+    selection for improved spectroscopic photoacoustic imaging”.
+    https://doi.org/10.1016/j.pacs.2013.08.001
+    [4] B. I. Golubov and A. G. Vitushkin (2001). "Variation of a function".
+    https://encyclopediaofmath.org/index.php?title=Variation_of_a_function
 
     Parameters
     ----------
@@ -45,12 +48,12 @@ class AccumulatedLocalEffects:
         NUMBER OF ILLUMINATION POSITIONS (USE 1 FOR LSD).
     num_wlen : int32
         NUMBER OF WAVELENGTHS USED FOR ILLUMINATION.
-    data_reduction : float64, optional (default is 0.01)
-        SUBRATIO OF THE DATA TO BE USED FOR CALCULATING THE f_ALE FUNCTION.
     num_subintervals : int32, optional (default is 100)
         NUMBER OF UNIFORM INTERVALS FOR THE FEATURES TO BE SUBDIVIDED INTO.
     num_x_values : int32, optional (default is 20)
         NUMBER OF x-VALUES FOR THE f_ALE TO BE EVALUATED AT.
+    data_reduction : float64, optional (default is 0.01)
+        SUBRATIO OF THE DATA TO BE USED FOR CALCULATING THE f_ALE FUNCTION.
 
     Methods
     -------
@@ -59,7 +62,7 @@ class AccumulatedLocalEffects:
     plot_ALE_function(illum_pos)
         PLOTS THE ALE FUNCTIONS FOR A SPECIFIED ILLUMINATION POSITION.
     plot_feature_clipping(
-        X_test, y_test, clipping_order, illum_pos, ordered_indices, seed)
+      X_test, y_test, clipping_order, illum_pos, index_order, n_shown, seed)
         PLOTS THE PROGRESSION OF THE MEDIAN ABSOLUTE ERROR IN FEATURE CLIPPING.
 
     """
@@ -333,7 +336,9 @@ class AccumulatedLocalEffects:
         colors = plt.get_cmap('Blues_r')(np.linspace(0, 0.7, len(illum_pos)))
 
         # Manually picking a good looking color for single illuminations
-        if len(illum_pos) == 1: colors[0] = np.array([0.129, 0.443, 0.709, 1])
+        if len(illum_pos) == 1:
+
+            colors[0] = np.array([0.129, 0.443, 0.709, 1])
 
         for i in illum_pos:
 
@@ -412,7 +417,7 @@ class AccumulatedLocalEffects:
         plt.savefig(self.filename + '_ALE_function.pdf', dpi=600)
 
     def plot_feature_clipping(self, X, y, clipping_order, illum_pos=[0],
-                              ordered_indices=None, n_shown='all',
+                              index_order=None, n_shown='all',
                               seed=1):
         """
         Creates a boxplot for the absolute prediction errors when performing
@@ -429,9 +434,10 @@ class AccumulatedLocalEffects:
             RULE, ACCORDING TO WHICH FEATURES ARE SEQUENTIALLY REMOVED.
         illum_pos : List of int32, optional (default is [0])
             ILLUMINATION POSITIONS WHICH WILL BE USED TO DETERMINE IMPORTANCE.
-        ordered_indices : List of int32, optional (default is None)
+        index_order : List of int32, optional (default is None)
             ORDER OF REMOVING FEATURES IF 'custom' CLIPPING MODE WAS PICKED.
         n_shown : List of int32, optional (default is 'all')
+            ONLY SHOW THE FEATURE CLIPPING FOR THESE NUMBERS OF WAVELENGTHS
         seed : int32 or None, optional (default is 1)
             SEED FOR GENERATING RANDOM FEATURE INDICES.
 
@@ -443,12 +449,14 @@ class AccumulatedLocalEffects:
 
         """
 
+        # If all numbers of wavelengths should be plotted
         if n_shown == 'all':
 
             n_shown = list(np.arange(1, self.num_wlen+1))
 
         n_shown_clean = list(n_shown)
 
+        # If only a selection of numbers of wavelengths should be plotted
         if n_shown_clean.count('...') != 0:
 
             n_shown_clean.pop(n_shown_clean.index('...'))
@@ -508,21 +516,19 @@ class AccumulatedLocalEffects:
             elif c == 'custom':
 
                 # Custom indices according to the 'clipping_order' parameter
-                ordered_indices = np.array(ordered_indices)
+                ordered_indices = np.array(index_order)
 
             elif c == 'updated_min_ALE':
 
                 # The initial order doesn't matter, it will be recalculated
                 ordered_indices = np.arange(self.num_wlen)
 
-                # For 'updatedimportance' order, iteratively recalculate
+                # For 'updated_min_ALE' order, iteratively recalculate
                 # importance order for every number n of features used
                 for i in range(self.num_wlen-2):
 
                     ordered_indices[i:] = self.feature_importance_indices(
                         illum_pos, ordered_indices[i:])
-
-                print('updated_min_ALE:', 680 + 20*ordered_indices)
 
             else:
 
@@ -624,7 +630,5 @@ class AccumulatedLocalEffects:
         # Saving the figure
         plt.savefig(self.filename + '_FEATCLIP_' + '-'.join(clipping_order)
                     + '.pdf', dpi=600)
-
-        np.save(self.filename, stats)  # Temporary, to be removed later on!
 
         return stats
