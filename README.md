@@ -23,7 +23,7 @@ This plot shows the accumulated local effects (ALE) function [2] for each wavele
 
 ![ALE_function example](/plots/EXAMPLE_LSD_ALE_function.PNG)
 
-The same plot, but for multiple illumination positions.
+... or for multiple illumination positions.
 
 ![ALE_function example MI-LSD](/plots/EXAMPLE_MI-LSD_ALE_function.PNG)
 
