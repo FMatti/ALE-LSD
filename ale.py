@@ -408,7 +408,7 @@ class AccumulatedLocalEffects:
 
         # Adding the global x- and y-label (using textboxes because it works)
         fig.text(0.5, 0.05,
-                 r"L1 normalized absorbed energy $\hat{H}$",
+                 r"L1 normalized absorbed energy density $\hat{H}$",
                  ha='center', va='bottom')
         fig.text(0.04, 0.5, r"Accumulated local effects $ALE(\hat{H})$",
                  ha='left', va='center', rotation=90)
